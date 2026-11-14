@@ -29,6 +29,22 @@ for(const width of [320,400,597]) {
  },width);console.log('Alarm layout',measured);
  if(width===597)await page.screenshot({path:'preview-alarms.png'});
 }
+// Check computed typography, including the later responsive CSS rules.
+for(const width of [320,400,597]) {
+ const measured=await page.evaluate(w=>{
+  const c=document.querySelector('cinematic-ups-card');c.style.width=w+'px';
+  c.setConfig({...window.demoConfig,battery_install_date:'2023-01-01'});
+  c.hass={states:window.demoStates};
+  const age=c.shadowRoot.querySelector('.age');
+  const fontSize=getComputedStyle(age).fontSize;
+  if(fontSize!=='13px')throw Error('Battery elapsed font overridden: '+fontSize);
+  if(!age.textContent.includes('זמן מאז החלפת הסוללה:'))throw Error('Missing elapsed label');
+  if(age.scrollWidth>age.clientWidth+1)throw Error('Battery elapsed text overflows');
+  if(c.shadowRoot.querySelector('ha-card').scrollWidth>c.clientWidth+1)throw Error('Card overflows with elapsed text');
+  return {width:w,fontSize,height:age.offsetHeight};
+ },width);console.log('Battery elapsed typography',measured);
+ await page.screenshot({path:'preview-battery-time-'+width+'.png'});
+}
 const editorChecks=await page.evaluate(()=>{
  const Card=customElements.get('cinematic-ups-card');
  if(Card.getConfigElement!==undefined)throw Error('Custom editor still overrides HA native form');
