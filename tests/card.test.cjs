@@ -56,3 +56,22 @@ card.hass=alarmStates('','OB LB');
 assert.match(card.shadowRoot.innerHTML,/עבודה על סוללה · סוללה חלשה/);
 assert.match(card.shadowRoot.innerHTML,/center-status error/);
 console.log('PASS: Hebrew online/status, active/cleared alarms, unavailable sensor, alarm escaping and status-only faults');
+
+const driverAlarms={"Replace battery": "נדרשת החלפת סוללה", "Shutdown imminent": "כיבוי צפוי בקרוב", "Fan failure": "תקלה במאוורר", "No battery installed": "לא זוהתה סוללה", "Battery voltage too low": "מתח הסוללה נמוך מדי", "Battery voltage too high": "מתח הסוללה גבוה מדי", "Battery charger fail": "תקלה במטען הסוללה", "Temperature too high": "טמפרטורה גבוהה מדי", "Internal UPS fault": "תקלה פנימית באל־פסק", "Awaiting power": "ממתין לאספקת חשמל", "Automatic bypass mode": "מצב מעקף אוטומטי", "Manual bypass mode": "מצב מעקף ידני", "Emergency stop": "עצירת חירום", "Wiring fault": "תקלה בחיווט", "Fatal EEPROM fault": "תקלה חמורה בזיכרון ההגדרות", "Inverter AC voltage too high": "מתח הממיר גבוה מדי", "Inverter AC voltage too low": "מתח הממיר נמוך מדי", "Output short circuit": "קצר ביציאת האל־פסק", "Low battery": "סוללה חלשה", "Battery disconnected": "הסוללה מנותקת", "Battery failure": "תקלה בסוללה", "Overload": "עומס יתר", "Over temperature": "טמפרטורה גבוהה", "Internal fault": "תקלה פנימית"};
+for(const [english,hebrew] of Object.entries(driverAlarms)) {
+ card.hass=alarmStates(english+'!');
+ assert.ok(card.shadowRoot.innerHTML.includes(hebrew),english);
+ assert.match(card.shadowRoot.innerHTML,/center-status error/);
+}
+card.hass=alarmStates('Replace battery! Fan failure!');
+assert.match(card.shadowRoot.innerHTML,/נדרשת החלפת סוללה · תקלה במאוורר/);
+card.hass=alarmStates('Future fault 123');
+assert.match(card.shadowRoot.innerHTML,/Future fault 123/);
+card.hass=alarmStates('','Online, charging');
+assert.match(card.shadowRoot.innerHTML,/מחובר לחשמל · בטעינה/);
+card.hass=alarmStates('Emergency stop!');
+const rendered=card.shadowRoot.innerHTML;
+const statusArea=rendered.indexOf('<div class="status-area"');
+const detailsAt=rendered.indexOf('<div class="alarm-detail');
+assert.ok(detailsAt>statusArea && detailsAt<rendered.indexOf('<div class="center-beeper"'));
+console.log('PASS: 18 driver alarms plus aliases, combined/unknown messages, combined English statuses and inline alarm placement');

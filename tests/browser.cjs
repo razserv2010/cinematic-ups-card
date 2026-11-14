@@ -7,4 +7,22 @@ await page.evaluate(()=>{const c=document.querySelector('cinematic-ups-card'); c
 await page.screenshot({path:'preview.png'});
 const results=await page.evaluate(()=>{const c=document.querySelector('cinematic-ups-card'),root=c.shadowRoot;const checks={};checks.level=root.querySelector('.liquid').style.getPropertyValue('--level')==='87%'; checks.runtime=root.querySelector('.runtime strong').textContent==='01:03:11';checks.order=[...root.querySelectorAll('.ml')].map(n=>n.textContent);const liquid=root.querySelector('.liquid');c.hass={states:{...window.demoStates, 'sensor.unrelated':{state:'on'}}};checks.stable=liquid===root.querySelector('.liquid');for(const value of ['0','100','unavailable']) {c.hass={states:{...window.demoStates,'sensor.battery':{state:value,attributes:{}}}}; checks[value]={level:root.querySelector('.liquid').style.getPropertyValue('--level'),label:root.querySelector('.percentage').textContent};}return checks;});console.log(JSON.stringify(results));if(!results.level||!results.runtime||!results.stable)throw Error('Browser rendering checks failed');
 for(const width of [320,400,597]){await page.evaluate(w=>{let c=document.querySelector('cinematic-ups-card');c.style.width=w+'px';c.hass={states:window.demoStates};},width);console.log(width,await page.evaluate(()=>{const c=document.querySelector('cinematic-ups-card');const scroll=c.shadowRoot.querySelector('ha-card').scrollWidth;if(scroll>c.clientWidth+1)throw Error('Horizontal overflow');return {width:c.clientWidth,height:c.offsetHeight,scroll}}));if(width===400)await page.screenshot({path:'preview-mobile.png'});}
+for(const width of [320,400,597]) {
+ const measured=await page.evaluate(w=>{
+  const c=document.querySelector('cinematic-ups-card');c.style.width=w+'px';
+  c.setConfig({...window.demoConfig,alarms_entity:'sensor.alarms'});
+  c.hass={states:{...window.demoStates,'sensor.alarms':{state:''}}};
+  const normal={height:c.offsetHeight,metrics:c.shadowRoot.querySelector('.metrics').getBoundingClientRect().top};
+  c.hass={states:{...window.demoStates,'sensor.alarms':{state:'Replace battery! Fan failure! Battery voltage too low! Output short circuit!'}}};
+  const root=c.shadowRoot,area=root.querySelector('.status-area'),runtime=root.querySelector('.runtime');
+  if(c.offsetHeight!==normal.height)throw Error('Alarm changes card height');
+  if(Math.abs(root.querySelector('.metrics').getBoundingClientRect().top-normal.metrics)>1)throw Error('Alarm moves metrics');
+  if(area.getBoundingClientRect().bottom>runtime.getBoundingClientRect().top+1)throw Error('Alarm overlaps runtime');
+  if(area.clientHeight<16)throw Error('Alarm region is not readable');
+  if(!root.querySelector('.center-status.error'))throw Error('Missing red alarm status');
+  if(getComputedStyle(root.querySelector('.alarm-detail')).color!=='rgb(255, 158, 170)')throw Error('Alarm detail not red');
+  return {width:w,height:c.offsetHeight,alarmViewport:area.clientHeight,alarmContent:area.scrollHeight};
+ },width);console.log('Alarm layout',measured);
+ if(width===597)await page.screenshot({path:'preview-alarms.png'});
+}
 await browser.close();})();
