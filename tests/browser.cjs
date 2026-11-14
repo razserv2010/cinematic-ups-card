@@ -25,4 +25,28 @@ for(const width of [320,400,597]) {
  },width);console.log('Alarm layout',measured);
  if(width===597)await page.screenshot({path:'preview-alarms.png'});
 }
+const editorChecks=await page.evaluate(async()=>{
+ // Test editor contract without substituting a fake visual form for HA components.
+ const Card=customElements.get('cinematic-ups-card');
+ const editor=await Card.getConfigElement();
+ const original={...window.demoConfig,accent_color:'#12abef',battery_install_date:'2026-11-14',image:'/local/ups.png',grid_options:{columns:12},custom_option:'keep'};
+ editor.setConfig(original);editor.hass={states:window.demoStates};document.body.append(editor);
+ const form=editor.shadowRoot.querySelector('ha-form');
+ if(!form)throw Error('Missing native ha-form');
+ if(editor.shadowRoot.querySelector('input,select,datalist'))throw Error('Custom editor controls remain');
+ if(form.schema.find(x=>x.name==='battery_entity').selector.entity===undefined)throw Error('Missing entity selector');
+ if(JSON.stringify(form.data.accent_color)!=='[18,171,239]')throw Error('Hex-to-RGB conversion failed');
+ if(form.computeLabel({name:'alarms_entity'})!=='התראות ותקלות UPS')throw Error('Missing Hebrew label');
+ let changes=[];editor.addEventListener('config-changed',ev=>changes.push(ev.detail.config));
+ const next={...form.data,accent_color:[255,128,0],status_entity:'sensor.changed',image:''};
+ form.dispatchEvent(new CustomEvent('value-changed',{detail:{value:next},bubbles:true,composed:true}));
+ const saved=changes.at(-1);
+ if(saved.accent_color!=='#ff8000'||saved.status_entity!=='sensor.changed'||'image' in saved)throw Error('Form values did not save');
+ if(saved.custom_option!=='keep'||saved.grid_options.columns!==12||saved.type!==original.type)throw Error('Existing configuration lost');
+ if(original.accent_color!=='#12abef'||original.image!=='/local/ups.png')throw Error('Original config mutated');
+ const previousData=form.data;editor.hass={states:{...window.demoStates}};
+ if(form!==editor.shadowRoot.querySelector('ha-form')||form.data!==previousData)throw Error('State update recreated editor/data');
+ if(changes.length!==1)throw Error('Duplicate config events');
+ editor.remove();return {nativeForm:true,selectors:true,hexRoundTrip:true,preservesConfig:true,stableForm:true};
+});console.log('Editor contract',editorChecks);
 await browser.close();})();
