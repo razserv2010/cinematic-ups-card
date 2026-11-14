@@ -1,12 +1,7 @@
-## Cinematic UPS Card 0.5.6
+## Cinematic UPS Card 0.5.7
 
-- Switches the active editor to Home Assistant getConfigForm: HA renders and manages the form directly. No getConfigElement override, custom editor CSS or custom value-change handler is used on this path.
-- Native expandable sections for status/alarms, metrics, beeper and appearance with Hebrew labels.
-- Existing flat YAML keys remain unchanged. The native text/color selector preserves hexadecimal accent_color values.
-
-Implementation references reviewed:
-https://github.com/piitaya/lovelace-mushroom/blob/main/src/cards/template-card/template-card-editor.ts
-https://github.com/Axildor/AXiDOS-Avatar-Card/blob/main/src/editor.js
-https://contributors.home-assistant.io/frontend/custom-ui/card-editor/
-
-Update in HACS and fully refresh the browser before reopening the card editor.
+- Beeper control opens a styled menu directly inside the card instead of the entity more-info dialog.
+- Options are read from the configured select/input_select entity. Switch/input_boolean entities expose on/off choices.
+- Hebrew labels are displayed while exact underlying option values are sent to Home Assistant.
+- Unavailable entities cannot be operated; pending requests prevent duplicate actions and failures display an inline message.
+- Existing beeper_entity configuration is retained. A controllable select or switch entity is required; sensors remain status-only.
