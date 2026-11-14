@@ -78,3 +78,20 @@ for(const value of ['', 'none','No alarms','unknown','unavailable','off','0']){c
 card.hass=alarmStates('','OB LB');assert.doesNotMatch(card.shadowRoot.innerHTML,/class="alarm-detail/);
 assert.match(card.shadowRoot.innerHTML,/center-status error/);
 console.log('PASS: 18 driver alarms plus aliases, combined/unknown messages, combined English statuses and bottom alarm placement and active-only visibility');
+
+// Calendar duration: leap years, short months, zero units and invalid dates.
+for (const [start,end,expected] of [
+ ['2024-08-02','2026-11-14','שנתיים, 3 חודשים ו־12 ימים'],
+ ['2025-11-09','2026-11-14','שנה ו־5 ימים'],
+ ['2026-07-07','2026-11-14','4 חודשים ו־7 ימים'],
+ ['2026-10-27','2026-11-14','18 ימים'],
+ ['2026-11-14','2026-11-14','הוחלפה היום'],
+ ['2026-01-31','2026-02-28','חודש'],
+ ['2024-02-29','2025-02-28','שנה'],
+ ['2026-02-30','2026-11-14',null],
+ ['2026-11-15','2026-11-14',null],
+ ['','2026-11-14',null]
+]) assert.equal(Card.batteryElapsed(start,new Date(end+'T12:00:00')),expected);
+card.setConfig({battery_entity:'sensor.battery',battery_install_date:'2024-08-02'});
+assert.match(card.shadowRoot.innerHTML,/זמן מאז החלפת הסוללה:/);
+assert.match(card.shadowRoot.innerHTML,/תאריך החלפת הסוללה: 2024-08-02/);
