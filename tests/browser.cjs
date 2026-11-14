@@ -25,28 +25,20 @@ for(const width of [320,400,597]) {
  },width);console.log('Alarm layout',measured);
  if(width===597)await page.screenshot({path:'preview-alarms.png'});
 }
-const editorChecks=await page.evaluate(async()=>{
- // Test editor contract without substituting a fake visual form for HA components.
+const editorChecks=await page.evaluate(()=>{
  const Card=customElements.get('cinematic-ups-card');
- const editor=await Card.getConfigElement();
- const original={...window.demoConfig,accent_color:'#12abef',battery_install_date:'2026-11-14',image:'/local/ups.png',grid_options:{columns:12},custom_option:'keep'};
- editor.setConfig(original);editor.hass={states:window.demoStates};document.body.append(editor);
- const form=editor.shadowRoot.querySelector('ha-form');
- if(!form)throw Error('Missing native ha-form');
- if(editor.shadowRoot.querySelector('input,select,datalist'))throw Error('Custom editor controls remain');
- if(form.schema.find(x=>x.name==='battery_entity').selector.entity===undefined)throw Error('Missing entity selector');
- if(JSON.stringify(form.data.accent_color)!=='[18,171,239]')throw Error('Hex-to-RGB conversion failed');
- if(form.computeLabel({name:'alarms_entity'})!=='התראות ותקלות UPS')throw Error('Missing Hebrew label');
- let changes=[];editor.addEventListener('config-changed',ev=>changes.push(ev.detail.config));
- const next={...form.data,accent_color:[255,128,0],status_entity:'sensor.changed',image:''};
- form.dispatchEvent(new CustomEvent('value-changed',{detail:{value:next},bubbles:true,composed:true}));
- const saved=changes.at(-1);
- if(saved.accent_color!=='#ff8000'||saved.status_entity!=='sensor.changed'||'image' in saved)throw Error('Form values did not save');
- if(saved.custom_option!=='keep'||saved.grid_options.columns!==12||saved.type!==original.type)throw Error('Existing configuration lost');
- if(original.accent_color!=='#12abef'||original.image!=='/local/ups.png')throw Error('Original config mutated');
- const previousData=form.data;editor.hass={states:{...window.demoStates}};
- if(form!==editor.shadowRoot.querySelector('ha-form')||form.data!==previousData)throw Error('State update recreated editor/data');
- if(changes.length!==1)throw Error('Duplicate config events');
- editor.remove();return {nativeForm:true,selectors:true,hexRoundTrip:true,preservesConfig:true,stableForm:true};
-});console.log('Editor contract',editorChecks);
+ if(Card.getConfigElement!==undefined)throw Error('Custom editor still overrides HA native form');
+ const form=Card.getConfigForm();
+ const fields=[];const visit=schema=>schema.forEach(x=>x.schema?visit(x.schema):fields.push(x));visit(form.schema);
+ const expected=['name','model','battery_entity','status_entity','alarms_entity','runtime_entity','load_entity','power_entity','apparent_power_entity','voltage_entity','beeper_status_entity','beeper_entity','image','battery_install_date','accent_color'];
+ if(fields.length!==expected.length||new Set(fields.map(x=>x.name)).size!==expected.length||expected.some(key=>!fields.some(x=>x.name===key)))throw Error('Existing fields lost or duplicated');
+ for(const section of form.schema.filter(x=>x.type==='expandable'))if(!section.flatten||!section.title)throw Error('Section changes YAML nesting');
+ for(const field of fields){if(!field.selector||!form.computeLabel(field))throw Error('Missing native selector/label');}
+ if(fields.find(x=>x.name==='accent_color').selector.text.type!=='color')throw Error('Hex color compatibility lost');
+ const c=document.querySelector('cinematic-ups-card');
+ const original={...window.demoConfig,accent_color:'#12abef',custom_option:'keep',grid_options:{columns:12}};
+ c.setConfig(original);c.hass={states:window.demoStates};
+ if(c.c.custom_option!=='keep'||c.c.accent_color!=='#12abef')throw Error('Config compatibility failed');
+ return {nativeSchema:true,noCustomEditorOverride:true,allFieldsPreserved:true,flatYamlSections:true};
+});console.log('Native editor schema',editorChecks);
 await browser.close();})();
