@@ -1,9 +1,10 @@
-/* Cinematic UPS Card v0.2.0 */
+/* Cinematic UPS Card v0.3.0 — visual editor, configurable cinematic effects */
 class CinematicUpsCard extends HTMLElement {
  constructor(){super();this.attachShadow({mode:'open'});}
  setConfig(c){if(!c.battery_entity)throw Error('battery_entity is required');this.c=c;this.draw();}
  set hass(h){this.h=h;this.draw();}
  getCardSize(){return 7;}
+ static getConfigElement(){return document.createElement('cinematic-ups-card-editor');}
  static getStubConfig(){return {type:'custom:cinematic-ups-card',battery_entity:'sensor.ups_battery_charge'};}
  draw(){
   if(!this.h||!this.c)return;
@@ -38,3 +39,32 @@ class CinematicUpsCard extends HTMLElement {
 if(!customElements.get('cinematic-ups-card'))customElements.define('cinematic-ups-card',CinematicUpsCard);
 window.customCards=window.customCards||[];
 if(!window.customCards.some(c=>c.type==='cinematic-ups-card'))window.customCards.push({type:'cinematic-ups-card',name:'Cinematic UPS Card',description:'Cinematic animated UPS monitor'});
+
+class CinematicUpsCardEditor extends HTMLElement {
+ constructor(){super();this.attachShadow({mode:'open'});this.config={};}
+ set hass(h){this._hass=h;this.render();}
+ setConfig(c){this.config={...c};this.render();}
+ render(){
+  if(!this._hass)return;
+  const fields=[
+   ['name','שם הכרטיס','text'],['model','דגם האל פסק','text'],
+   ['status_entity','מצב UPS','entity'],['battery_entity','אחוז סוללה','entity'],
+   ['runtime_entity','זמן גיבוי','entity'],['load_entity','עומס','entity'],
+   ['power_entity','הספק אמיתי (W)','entity'],['apparent_power_entity','הספק מדומה (VA)','entity'],
+   ['voltage_entity','מתח כניסה','entity'],['beeper_status_entity','מצב זמזם','entity'],
+   ['beeper_entity','שליטה בזמזם','entity'],['image','נתיב תמונת UPS','text'],
+   ['battery_install_date','תאריך החלפת מצברים','date'],['accent_color','צבע ניאון','color']
+  ];
+  const esc=x=>String(x??'').replace(/[&<>"']/g,z=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[z]));
+  const options=Object.keys(this._hass.states).sort();
+  this.shadowRoot.innerHTML='<style>:host{display:block;direction:rtl;color:var(--primary-text-color)}.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:5px;font-size:13px}input,select{box-sizing:border-box;width:100%;border:1px solid var(--divider-color,#777);border-radius:8px;padding:10px;background:var(--card-background-color,#fff);color:var(--primary-text-color,#111);font:inherit}input[type=color]{height:44px}h3{margin:10px 0 15px}</style><h3>הגדרות Cinematic UPS Card</h3><div class="fields">'+
+  fields.map(([key,label,type])=>'<label class="field"><span>'+label+'</span>'+(type==='entity'?'<input list="entities" data-key="'+key+'" value="'+esc(this.config[key]||'')+'" placeholder="בחר או הקלד ישות">':'<input data-key="'+key+'" type="'+type+'" value="'+esc(this.config[key]||(type==='color'?'#36ff48':''))+'">')+'</label>').join('')+'</div><datalist id="entities">'+options.map(id=>'<option value="'+esc(id)+'"></option>').join('')+'</datalist>';
+  this.shadowRoot.querySelectorAll('[data-key]').forEach(input=>input.addEventListener('change',()=>{
+    const next={...this.config,[input.dataset.key]:input.value};
+    if(!next[input.dataset.key])delete next[input.dataset.key];
+    this.config=next;
+    this.dispatchEvent(new CustomEvent('config-changed',{detail:{config:next},bubbles:true,composed:true}));
+  }));
+ }
+}
+if(!customElements.get('cinematic-ups-card-editor'))customElements.define('cinematic-ups-card-editor',CinematicUpsCardEditor);
