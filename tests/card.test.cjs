@@ -48,7 +48,7 @@ assert.match(card.shadowRoot.innerHTML,/center-status normal">✓/);
 assert.doesNotMatch(card.shadowRoot.innerHTML,/class="alarm-detail/);
 for(const value of ['none','No alarms','0','off']) {card.hass=alarmStates(value);assert.match(card.shadowRoot.innerHTML,/center-status normal">/);}
 card.hass=alarmStates('unknown');
-assert.match(card.shadowRoot.innerHTML,/חיישן ההתראות אינו זמין/);
+assert.doesNotMatch(card.shadowRoot.innerHTML,/class="alarm-detail/);
 assert.doesNotMatch(card.shadowRoot.innerHTML,/class="alarm-detail error/);
 card.hass=alarmStates('<img src=x onerror=alert(1)>');
 assert.match(card.shadowRoot.innerHTML,/&lt;img src=x/);
@@ -73,5 +73,8 @@ card.hass=alarmStates('Emergency stop!');
 const rendered=card.shadowRoot.innerHTML;
 const statusArea=rendered.indexOf('<div class="status-area"');
 const detailsAt=rendered.indexOf('<div class="alarm-detail');
-assert.ok(detailsAt>statusArea && detailsAt<rendered.indexOf('<div class="center-beeper"'));
-console.log('PASS: 18 driver alarms plus aliases, combined/unknown messages, combined English statuses and inline alarm placement');
+assert.ok(detailsAt>rendered.indexOf('<div class="controls"'));
+for(const value of ['', 'none','No alarms','unknown','unavailable','off','0']){card.hass=alarmStates(value);assert.doesNotMatch(card.shadowRoot.innerHTML,/class="alarm-detail/);}
+card.hass=alarmStates('','OB LB');assert.doesNotMatch(card.shadowRoot.innerHTML,/class="alarm-detail/);
+assert.match(card.shadowRoot.innerHTML,/center-status error/);
+console.log('PASS: 18 driver alarms plus aliases, combined/unknown messages, combined English statuses and bottom alarm placement and active-only visibility');

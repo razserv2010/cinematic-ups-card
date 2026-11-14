@@ -12,10 +12,14 @@ for(const width of [320,400,597]) {
   const c=document.querySelector('cinematic-ups-card');c.style.width=w+'px';
   c.setConfig({...window.demoConfig,alarms_entity:'sensor.alarms'});
   c.hass={states:{...window.demoStates,'sensor.alarms':{state:''}}};
+  if(c.shadowRoot.querySelector('.alarm-detail'))throw Error('Empty alarm panel rendered');
   const normal={height:c.offsetHeight,metrics:c.shadowRoot.querySelector('.metrics').getBoundingClientRect().top};
   c.hass={states:{...window.demoStates,'sensor.alarms':{state:'Replace battery! Fan failure! Battery voltage too low! Output short circuit!'}}};
   const root=c.shadowRoot,area=root.querySelector('.status-area'),runtime=root.querySelector('.runtime');
-  if(c.offsetHeight!==normal.height)throw Error('Alarm changes card height');
+  if(c.offsetHeight<=normal.height)throw Error('Bottom alarm is not visible');
+  const detail=root.querySelector('.alarm-detail');
+  if(detail.getBoundingClientRect().top<root.querySelector('.controls').getBoundingClientRect().bottom)throw Error('Alarm is not below controls');
+  if(area.contains(detail))throw Error('Alarm still in status area');
   if(Math.abs(root.querySelector('.metrics').getBoundingClientRect().top-normal.metrics)>1)throw Error('Alarm moves metrics');
   if(area.getBoundingClientRect().bottom>runtime.getBoundingClientRect().top+1)throw Error('Alarm overlaps runtime');
   if(area.clientHeight<16)throw Error('Alarm region is not readable');
