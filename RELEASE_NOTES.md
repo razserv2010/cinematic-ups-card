@@ -1,4 +1,4 @@
-## Cinematic UPS Card 0.5.3
+## Cinematic UPS Card 0.5.4
 
 - Hebrew translations for all 18 alarm strings defined in NUT 2.8.1 usbhid-ups.c and MGE HID vendor mappings, plus existing aliases. Device capabilities vary; no claim that every model emits all alarms.
 - Translate combined status codes and English labels; preserve unknown alarm text.
@@ -8,3 +8,5 @@
 Sources:
 https://sources.debian.org/src/nut/2.8.1-5/drivers/usbhid-ups.c/
 https://sources.debian.org/src/nut/2.8.1-5/drivers/mge-hid.c/
+
+- Compact warning badge leaves space for the actual alarm message; power state remains available on hover. Runtime box stays within the center column.
